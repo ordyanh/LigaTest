@@ -18,10 +18,9 @@ public class AuthController : ControllerBase
 
 
     [HttpGet("users")]
-    [Authorize(Roles = "Employee")] // Только сотрудники могут получать список пользователей
+    [Authorize(Roles = "Employee")]
     public async Task<IActionResult> GetUsers()
     {
-        // Получаем всех с ролью "User"
         var users = await _authService.GetUsersByRoleAsync("User");
         return Ok(users);
     }

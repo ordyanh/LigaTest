@@ -30,7 +30,7 @@ public class AuthService : IAuthService
         {
             Email = dto.Email,
             FullName = dto.FullName,
-            Role = dto.Role, // "User" или "Employee"
+            Role = dto.Role, 
             PasswordHash = BC.HashPassword(dto.Password)
         };
 

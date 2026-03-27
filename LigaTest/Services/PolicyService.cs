@@ -14,17 +14,14 @@ public class PolicyService : IPolicyService
         _context = context;
     }
 
-    // 1. Logic for creating a new Policy (for Employee)
     public async Task<bool> CreatePolicyAsync(CreatePolicyDto dto)
     {
-        // REQUIREMENT: Policy Number must be unique
         var exists = await _context.Policies.AnyAsync(p => p.PolicyNumber == dto.PolicyNumber);
         if (exists)
         {
             throw new Exception($"Policy with number {dto.PolicyNumber} already exists.");
         }
 
-        // Validate dates
         if (dto.StartDate >= dto.EndDate)
         {
             throw new Exception("Start date must be earlier than end date.");
@@ -45,7 +42,6 @@ public class PolicyService : IPolicyService
         return true;
     }
 
-    // 2. Logic for User to see their own policies
     public async Task<IEnumerable<PolicyResponseDto>> GetUserPoliciesAsync(int userId)
     {
         return await _context.Policies
@@ -63,7 +59,6 @@ public class PolicyService : IPolicyService
             .ToListAsync();
     }
 
-    // 3. Logic for Employee to see all policies in the system
     public async Task<IEnumerable<PolicyResponseDto>> GetAllPoliciesAsync()
     {
         return await _context.Policies

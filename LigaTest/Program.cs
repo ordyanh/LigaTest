@@ -8,16 +8,13 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. БД
 builder.Services.AddDbContext<LigaContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 2. Сервисы
 builder.Services.AddScoped<IClaimsService, ClaimsService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPolicyService, PolicyService>();
 
-// 3. JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -55,8 +52,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowAll");
 
-app.UseAuthentication(); // Важно: сначала Authentication
-app.UseAuthorization();  // Затем Authorization
+app.UseAuthentication(); 
+app.UseAuthorization(); 
 
 app.MapControllers();
 app.Run();

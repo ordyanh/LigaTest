@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LigaTest.Controllers;
 
-[Authorize] // Весь контроллер защищен
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class ClaimsController : ControllerBase
@@ -16,12 +16,11 @@ public class ClaimsController : ControllerBase
     public ClaimsController(IClaimsService claimsService) => _claimsService = claimsService;
 
     [HttpPost]
-    [Authorize(Roles = "User")] // Только пользователь создает
+    [Authorize(Roles = "User")]
     public async Task<IActionResult> Create(CreateClaimDto dto)
     {
         try
         {
-            // Берем UserId из токена для безопасности
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             dto.UserId = userId;
 
@@ -37,7 +36,6 @@ public class ClaimsController : ControllerBase
         var role = User.FindFirstValue(ClaimTypes.Role);
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        // Если сотрудник - видит всех, если юзер - только своих
         var filterUserId = role == "Employee" ? null : (int?)userId;
 
         var claims = await _claimsService.GetClaimsAsync(filterUserId, status);
@@ -45,7 +43,7 @@ public class ClaimsController : ControllerBase
     }
 
     [HttpPatch("{id}/status")]
-    [Authorize(Roles = "Employee")] // Только сотрудник меняет статус
+    [Authorize(Roles = "Employee")]
     public async Task<IActionResult> ChangeStatus(int id, [FromBody] string newStatus)
     {
         try

@@ -22,8 +22,6 @@ public class PoliciesController : ControllerBase
         _context = context;
     }
 
-    // 1. GET: api/Policies/my
-    // Returns policies belonging to the currently logged-in user
     [HttpGet("my")]
     public async Task<IActionResult> GetMyPolicies()
     {
@@ -36,8 +34,7 @@ public class PoliciesController : ControllerBase
         return Ok(policies);
     }
 
-    // 2. GET: api/Policies/all
-    // Returns all policies in the system (Employees only)
+
     [HttpGet("all")]
     [Authorize(Roles = "Employee")]
     public async Task<IActionResult> GetAllPolicies()
@@ -46,8 +43,7 @@ public class PoliciesController : ControllerBase
         return Ok(policies);
     }
 
-    // 3. POST: api/Policies
-    // Creates a new policy (Employees only)
+ 
     [HttpPost]
     [Authorize(Roles = "Employee")]
     public async Task<IActionResult> CreatePolicy([FromBody] CreatePolicyDto dto)
@@ -63,8 +59,7 @@ public class PoliciesController : ControllerBase
         }
     }
 
-    // 4. GET: api/Policies/users
-    // Helper endpoint for the Employee to populate a dropdown list of clients
+  
     [HttpGet("users")]
     [Authorize(Roles = "Employee")]
     public async Task<IActionResult> GetClientsList()

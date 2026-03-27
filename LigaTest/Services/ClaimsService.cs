@@ -14,7 +14,6 @@ public class ClaimsService : IClaimsService
     {
         var policy = await _context.Policies.FindAsync(dto.PolicyId);
 
-        // ВАЛИДАЦИЯ
         if (policy == null || policy.UserId != dto.UserId)
             throw new Exception("Полис не найден или не принадлежит вам.");
 
@@ -38,7 +37,7 @@ public class ClaimsService : IClaimsService
         _context.Claims.Add(claim);
         await _context.SaveChangesAsync();
 
-        return new ClaimResponseDto { Id = claim.Id, Status = claim.Status }; // Упрощено
+        return new ClaimResponseDto { Id = claim.Id, Status = claim.Status };
     }
 
     public async Task<IEnumerable<ClaimResponseDto>> GetClaimsAsync(int? userId, string? status)
