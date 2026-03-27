@@ -5,8 +5,18 @@ using LigaTest.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
+using LigaTest.Middleware; 
 
 var builder = WebApplication.CreateBuilder(args);
+
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
+
 
 builder.Services.AddDbContext<LigaContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -44,6 +54,7 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+app.UseMiddleware<ExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -56,4 +67,16 @@ app.UseAuthentication();
 app.UseAuthorization(); 
 
 app.MapControllers();
-app.Run();
+try
+{
+    Log.Information("Starting a web server...");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "The server terminated unexpectedly!");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
