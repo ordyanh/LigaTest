@@ -1,5 +1,6 @@
 ﻿using LigaTest.DTOs;
 using LigaTest.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -14,4 +15,14 @@ public class AuthController : ControllerBase
 
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginDto dto) => Ok(await _authService.LoginAsync(dto));
+
+
+    [HttpGet("users")]
+    [Authorize(Roles = "Employee")] // Только сотрудники могут получать список пользователей
+    public async Task<IActionResult> GetUsers()
+    {
+        // Получаем всех с ролью "User"
+        var users = await _authService.GetUsersByRoleAsync("User");
+        return Ok(users);
+    }
 }

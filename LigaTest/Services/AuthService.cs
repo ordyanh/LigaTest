@@ -37,7 +37,7 @@ public class AuthService : IAuthService
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        return new AuthResponseDto(GenerateToken(user), user.Email, user.Role, user.Id);
+        return new AuthResponseDto(GenerateToken(user), user.Email, user.Role, user.Id,user.FullName);
     }
 
     public async Task<AuthResponseDto?> LoginAsync(LoginDto dto)
@@ -45,7 +45,15 @@ public class AuthService : IAuthService
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
         if (user == null || !BC.Verify(dto.Password, user.PasswordHash)) return null;
 
-        return new AuthResponseDto(GenerateToken(user), user.Email, user.Role, user.Id);
+        return new AuthResponseDto(GenerateToken(user), user.Email, user.Role, user.Id,user.FullName);
+    }
+
+    public async Task<IEnumerable<UserDto>> GetUsersByRoleAsync(string role)
+    {
+        return await _context.Users
+            .Where(u => u.Role == role)
+            .Select(u => new UserDto(u.Id, u.Email, u.FullName))
+            .ToListAsync();
     }
 
     private string GenerateToken(User user)
