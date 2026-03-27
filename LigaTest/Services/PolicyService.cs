@@ -1,0 +1,83 @@
+﻿using LigaTest.DTOs;
+using LigaTest.Interfaces;
+using LigaTest.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace LigaTest.Services;
+
+public class PolicyService : IPolicyService
+{
+    private readonly LigaContext _context;
+
+    public PolicyService(LigaContext context)
+    {
+        _context = context;
+    }
+
+    // 1. Logic for creating a new Policy (for Employee)
+    public async Task<bool> CreatePolicyAsync(CreatePolicyDto dto)
+    {
+        // REQUIREMENT: Policy Number must be unique
+        var exists = await _context.Policies.AnyAsync(p => p.PolicyNumber == dto.PolicyNumber);
+        if (exists)
+        {
+            throw new Exception($"Policy with number {dto.PolicyNumber} already exists.");
+        }
+
+        // Validate dates
+        if (dto.StartDate >= dto.EndDate)
+        {
+            throw new Exception("Start date must be earlier than end date.");
+        }
+
+        var policy = new Policy
+        {
+            PolicyNumber = dto.PolicyNumber,
+            UserId = dto.UserId,
+            StartDate = dto.StartDate,
+            EndDate = dto.EndDate,
+            MaxCompensation = dto.MaxCompensation,
+            PremiumAmount = dto.PremiumAmount
+        };
+
+        _context.Policies.Add(policy);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    // 2. Logic for User to see their own policies
+    public async Task<IEnumerable<PolicyResponseDto>> GetUserPoliciesAsync(int userId)
+    {
+        return await _context.Policies
+            .Where(p => p.UserId == userId)
+            .Select(p => new PolicyResponseDto
+            {
+                Id = p.Id,
+                PolicyNumber = p.PolicyNumber,
+                ClientName = p.User.FullName,
+                StartDate = p.StartDate,
+                EndDate = p.EndDate,
+                MaxCompensation = p.MaxCompensation,
+                PremiumAmount = p.PremiumAmount
+            })
+            .ToListAsync();
+    }
+
+    // 3. Logic for Employee to see all policies in the system
+    public async Task<IEnumerable<PolicyResponseDto>> GetAllPoliciesAsync()
+    {
+        return await _context.Policies
+            .Include(p => p.User)
+            .Select(p => new PolicyResponseDto
+            {
+                Id = p.Id,
+                PolicyNumber = p.PolicyNumber,
+                ClientName = p.User.FullName,
+                StartDate = p.StartDate,
+                EndDate = p.EndDate,
+                MaxCompensation = p.MaxCompensation,
+                PremiumAmount = p.PremiumAmount
+            })
+            .ToListAsync();
+    }
+}

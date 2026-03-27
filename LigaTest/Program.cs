@@ -1,26 +1,23 @@
+using System.Text;
 using LigaTest.Interfaces;
 using LigaTest.Models;
 using LigaTest.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-builder = WebApplication.CreateBuilder(args);
+// 1. БД
 builder.Services.AddDbContext<LigaContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+// 2. Сервисы
 builder.Services.AddScoped<IClaimsService, ClaimsService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPolicyService, PolicyService>();
 
+// 3. JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -36,17 +33,30 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddAuthorization();
+builder.Services.AddControllers();
+builder.Services.AddOpenApi();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
-app.UseAuthorization();
-app.UseAuthentication();
-app.MapControllers();
+app.UseCors("AllowAll");
 
+app.UseAuthentication(); // Важно: сначала Authentication
+app.UseAuthorization();  // Затем Authorization
+
+app.MapControllers();
 app.Run();

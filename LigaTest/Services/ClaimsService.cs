@@ -8,18 +8,21 @@ namespace LigaTest.Services;
 public class ClaimsService : IClaimsService
 {
     private readonly LigaContext _context;
+    public ClaimsService(LigaContext context) => _context = context;
 
-    public ClaimsService(LigaContext context)
-    {
-        _context = context;
-    }
-
-    // ЛОГИКА 1: Создание заявки
     public async Task<ClaimResponseDto> CreateClaimAsync(CreateClaimDto dto)
     {
         var policy = await _context.Policies.FindAsync(dto.PolicyId);
+
+        // ВАЛИДАЦИЯ
         if (policy == null || policy.UserId != dto.UserId)
-            throw new Exception("Полис не найден или не принадлежит пользователю");
+            throw new Exception("Полис не найден или не принадлежит вам.");
+
+        if (dto.IncidentDate < policy.StartDate || dto.IncidentDate > policy.EndDate)
+            throw new Exception("Дата инцидента вне срока действия полиса.");
+
+        if (dto.RequestedAmount > policy.MaxCompensation)
+            throw new Exception("Сумма превышает максимальный лимит полиса.");
 
         var claim = new Claim
         {
@@ -28,61 +31,43 @@ public class ClaimsService : IClaimsService
             IncidentDate = dto.IncidentDate,
             Description = dto.Description,
             RequestedAmount = dto.RequestedAmount,
-            Status = "Created", // Авто-статус
+            Status = "Created",
             CreatedAt = DateTime.Now
         };
 
         _context.Claims.Add(claim);
         await _context.SaveChangesAsync();
 
-        return MapToDto(claim, policy.PolicyNumber, ""); // Имя можно подтянуть позже
+        return new ClaimResponseDto { Id = claim.Id, Status = claim.Status }; // Упрощено
     }
 
-    // ЛОГИКА 2: Получение списка с фильтрацией
     public async Task<IEnumerable<ClaimResponseDto>> GetClaimsAsync(int? userId, string? status)
     {
-        var query = _context.Claims
-            .Include(c => c.Policy)
-            .Include(c => c.User)
-            .AsQueryable();
+        var query = _context.Claims.Include(c => c.Policy).Include(c => c.User).AsQueryable();
 
-        // Если передан userId — фильтруем (для обычного пользователя)
-        if (userId.HasValue)
-            query = query.Where(c => c.UserId == userId.Value);
+        if (userId.HasValue) query = query.Where(c => c.UserId == userId);
+        if (!string.IsNullOrEmpty(status)) query = query.Where(c => c.Status == status);
 
-        // Фильтрация по статусу
-        if (!string.IsNullOrEmpty(status))
-            query = query.Where(c => c.Status == status);
-
-        var claims = await query.ToListAsync();
-        return claims.Select(c => MapToDto(c, c.Policy.PolicyNumber, c.User.FullName));
+        return await query.Select(c => new ClaimResponseDto
+        {
+            Id = c.Id,
+            PolicyNumber = c.Policy.PolicyNumber,
+            UserName = c.User.FullName,
+            Status = c.Status,
+            CreatedAt = c.CreatedAt,
+            Description = c.Description,
+            RequestedAmount = c.RequestedAmount
+        }).ToListAsync();
     }
 
-    // ЛОГИКА 3: Изменение статуса (только для сотрудника)
     public async Task<bool> UpdateStatusAsync(int claimId, string newStatus)
     {
         var claim = await _context.Claims.FindAsync(claimId);
         if (claim == null) return false;
-
-        // Бизнес-правило: менять можно только из статуса "Created"
-        if (claim.Status != "Created")
-            throw new Exception("Нельзя изменить статус уже обработанной заявки");
+        if (claim.Status != "Created") throw new Exception("Можно менять статус только новых заявок.");
 
         claim.Status = newStatus;
         await _context.SaveChangesAsync();
         return true;
     }
-
-    // Маппинг (в идеале использовать AutoMapper)
-    private static ClaimResponseDto MapToDto(Claim c, string policyNum, string userName) => new()
-    {
-        Id = c.Id,
-        PolicyNumber = policyNum,
-        UserName = userName,
-        IncidentDate = c.IncidentDate,
-        Description = c.Description,
-        RequestedAmount = c.RequestedAmount,
-        Status = c.Status,
-        CreatedAt = c.CreatedAt
-    };
 }
